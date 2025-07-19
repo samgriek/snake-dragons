@@ -1,0 +1,47 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Coding Workflow Preferences
+
+## Task Focus and Scope Management
+- Focus meticulously on the task and relevant code
+- Do not touch code that is unrelated to the task
+- Avoid making major changes to the patterns and architecture of how a feature works, after it has shown to work well, unless specifically instructed
+- Always think about what other methods and areas of the code a change would affect
+- Before implementing changes, consider the broader impact on the codebase
+
+## Project Planning and Documentation
+- Update the PRD or plan file provided to reflect changes requested by the user before implementing the user's requirements
+- Ask clarifying questions if you are not sure how to update the project plan
+- Always reference and update relevant documentation when making significant changes
+- Maintain clear traceability between requirements and implementation
+
+## Data Handling and LLM Interactions
+- Always get the user's approval before truncating data that goes into prompts, or preferably only truncate llm context when explicitly told to do so
+- Preserve data integrity and completeness whenever possible
+- Be transparent about any data limitations or constraints
+
+## Development Environment and Tools
+- You can restart docker compose or containers using the "docker compose" command since I'm using V2
+- Do not try to make requests to the API as you don't have the proper credentials
+- Respect environment constraints and work within the available toolset
+- Use appropriate development practices for the specific environment (local, alpha, prod)
+
+## Code Quality and Safety
+- Verify that modifications don't break existing functionality
+- Follow established coding patterns and conventions in the codebase
+- Ensure all changes are compatible with the existing architecture
+
+## Communication and Approval
+- Seek explicit approval for significant architectural changes
+- Communicate potential risks or concerns clearly
+- Provide clear explanations for technical decisions
+- Ask for feedback when uncertain about implementation approaches
+
+## Error Handling and Debugging
+- Implement proper error handling for all new code
+- Log meaningful information for debugging purposes
+- Handle edge cases and failure scenarios gracefully
+- Provide clear error messages that help with troubleshooting

@@ -1,0 +1,81 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Rules for generating a System Review Document (SRD) to analyze and document a specific part of an application.
+globs:
+alwaysApply: false
+---
+# Rule: Generating a System Review Document (SRD)
+
+## Goal
+
+To guide an AI assistant in creating a detailed System Review Document (SRD) in Markdown format, based on an initial user prompt specifying a particular part of an application or feature to review. The SRD should provide a comprehensive yet concise explanation of the system/feature, including its functionality, technology stack, potential issues, and nuances, tailored for a junior developer to understand and work on the system effectively.
+
+## Process
+
+1. **Receive Initial Prompt:** The user provides a description of the specific application component, feature, or system to be reviewed (e.g., "Review the user authentication module").
+2. **Ask Clarifying Questions:** Before writing the SRD, the AI *must* ask clarifying questions to gather sufficient detail about the system/feature, its context, and the scope of the review.
+3. **Investigate the System:** Analyze the specified system/feature, including its code (if accessible), documentation, or other relevant materials provided by the user or available through permitted sources (e.g., web searches, X posts). Identify how it works, its dependencies, and potential issues.
+4. **Generate SRD:** Based on the initial prompt, user answers, and investigation, generate an SRD using the structure outlined below favoring clear explanations over code snippets.
+5. **Save SRD:** Save the generated document as `srd-[system-or-feature-name].md` inside the `/reviews` directory.
+
+
+## Clarifying Questions (Examples)
+
+The AI should adapt its questions based on the prompt, but here are some common areas to explore:
+
+* **Scope of Review:** "Which specific part of the application or feature should I focus on? (e.g., a specific module, API, or UI component)"
+* **Context/Purpose:** "What is the primary function of this system/feature, and how does it fit into the overall application?"
+* **Technology Stack:** "Do you know which programming languages, frameworks, or tools are used in this system/feature?"
+* **Known Issues:** "Are there any specific issues or bugs you’re already aware of that I should investigate?"
+* **Dependencies:** "Does this system/feature rely on external services, APIs, or internal modules?"
+* **Usage Patterns:** "Who uses this system/feature, and how do they interact with it? Are there specific user flows to consider?"
+* **Edge Cases:** "Are there any known edge cases, failure modes, or performance concerns for this system/feature?"
+* **Documentation:** "Is there existing documentation, code comments, or architecture diagrams I can reference?"
+* **Maintenance Needs:** "Are there specific areas where you’re concerned about maintainability, scalability, or technical debt?"
+## SRD Structure
+
+The generated SRD should include the following sections:
+
+1. **Introduction/Overview:** Briefly describe the system/feature, its purpose, and its role in the broader application.
+2. **System Functionality:** Explain what the system/feature does, including key user or system interactions. Use clear, concise language to describe the core logic and workflows.
+
+3. **Relevant Files**
+
+example:
+- `path/to/potential/file1.py` - Brief description of why this file is relevant (e.g., Contains the main component for this feature).
+- `path/to/file1.test.py` - Unit tests for `file1.py`.
+- `path/to/another/file.py` - Brief description (e.g., API route handler for data submission).
+- `path/to/another/test.py` - Unit tests for `another/file.py`.
+- `lib/utils/helpers.ts` - Brief description (e.g., Utility functions needed for calculations).
+- `lib/utils/test.py` - Unit tests for `helpers.py`.
+
+4. **Technology Stack:** Detail the programming languages, frameworks, libraries, and tools used in the system/feature. Include versions where relevant (e.g., "Built with React 18.2, Node.js 20").
+5. **Architecture and Design:** Describe the high-level architecture (e.g., MVC, microservices) and key components (e.g., APIs, database schemas, UI components). Include diagrams if possible or note their absence as a potential issue.
+6. **Dependencies:** List internal and external dependencies (e.g., third-party APIs, libraries, or other system modules) and their roles.
+7. **How It Works:** Provide a step-by-step explanation of how the system/feature operates, tailored for a junior developer. Include code snippets or pseudocode if helpful to clarify complex logic.
+8. **Potential Issues and Concerns:** Identify areas of concern, such as technical debt, scalability bottlenecks, security risks, or maintainability challenges. For each issue, explain its impact and potential mitigation strategies.
+8. **Nuances and Considerations:** Highlight any subtleties or non-obvious aspects that developers must understand when working on this system/feature (e.g., specific configuration requirements, deprecated APIs, or performance quirks).
+10. **Recommendations:** Suggest actionable improvements or areas to monitor (e.g., "Refactor to reduce database query load" or "Add logging for error diagnostics").
+11. **Open Questions:** List any unresolved questions or areas where further investigation is needed (e.g., "Unclear how the system handles concurrent user sessions").
+
+## Target Audience
+
+Assume the primary reader of the SRD is a **junior developer** with basic knowledge of programming and the application’s domain. The document should be clear, avoid unnecessary jargon, and provide enough context to enable the developer to understand the system/feature and contribute to its maintenance or enhancement.
+
+## Output
+
+* **Format:** Markdown (`.md`)
+* **Location:** `/reviews/`
+* **Filename:** `srd-[system-or-feature-name].md`
+
+## Final Instructions
+
+1. Do NOT modify or implement changes to the system/feature during the review process.
+2. Make sure to ask the user clarifying questions to ensure a thorough understanding of the system/feature.
+3. Use the user’s answers and any investigation findings to create a comprehensive yet concise SRD.
+4. Ensure all technical explanations are clear and accessible to a junior developer, with examples or analogies where appropriate.
+5. If specific details (e.g., code, documentation) are unavailable, note this in the SRD and suggest ways to address the gap (e.g., "Recommend creating updated documentation for X").

@@ -1,0 +1,31 @@
+{
+  "name": "snake-dragons",
+  "version": "1.0.0",
+  "description": "A fast-paced browser-based 2D dragon combat game with home row keyboard controls",
+  "main": "src/game.js",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve . --single",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "game",
+    "dragon",
+    "browser",
+    "html5",
+    "canvas",
+    "physics",
+    "2d"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "matter-js": "^0.19.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+} 

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Dragons - Dragon Combat Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            border: 2px solid #333;
+            border-radius: 8px;
+            background-color: #000;
+        }
+        
+        #gameCanvas {
+            display: block;
+            background-color: #1e3a5f;
+            border-radius: 6px;
+        }
+        
+        #gameUI {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #ccc;
+            font-size: 12px;
+            text-align: right;
+            z-index: 10;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="gameUI">
+            <div>Health: <span id="playerHealth">100</span></div>
+            <div>Score: <span id="gameScore">0</span></div>
+            <div>Time: <span id="gameTimer">0:00</span></div>
+        </div>
+        
+        <div id="controls">
+            <div>Move: I/K/J/L</div>
+            <div>Rotate: A/S</div>
+            <div>Fire: F (regular) / D (exploding)</div>
+        </div>
+        
+        <div id="loadingText" class="loading">Loading Snake Dragons...</div>
+    </div>
+
+    <!-- Matter.js Physics Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    
+    <!-- Main Game Script -->
+    <script src="src/game.js"></script>
+</body>
+</html> 
