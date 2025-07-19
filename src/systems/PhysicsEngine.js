@@ -11,15 +11,36 @@ class PhysicsEngine {
         this.render = null;
         this.runner = null;
         
-        // Physics configuration
+        // Physics configuration optimized for 2D dragon combat
         this.config = {
-            gravity: { x: 0, y: 0, scale: 0 }, // No gravity for top-down dragon flight
+            // World settings
+            gravity: { x: 0, y: 0, scale: 0 }, // Zero gravity for space-like dragon flight
             enableSleeping: false, // Keep all bodies active for fast-paced gameplay
-            constraintIterations: 2, // Lower iterations for better performance
-            positionIterations: 6,
-            velocityIterations: 4,
+            
+            // Solver iterations (balance performance vs accuracy)
+            constraintIterations: 2, // Lower for performance in fast-paced game
+            positionIterations: 6, // Good balance for collision accuracy
+            velocityIterations: 4, // Sufficient for projectile physics
+            
+            // Timing and performance
             timestep: 1000 / 60, // 60 FPS physics simulation
-            enableDebug: false // Set to true for physics debug rendering
+            timeScale: 1.0, // Normal time speed
+            
+            // Collision detection
+            broadPhase: 'grid', // Grid broadphase for better performance with many objects
+            
+            // Rendering and debug
+            enableDebug: false, // Set to true for physics debug rendering
+            
+            // Game-specific physics properties
+            defaultDensity: 0.001, // Light objects for responsive movement
+            defaultFriction: 0.1, // Low friction for smooth gliding
+            defaultFrictionAir: 0.01, // Slight air resistance
+            defaultRestitution: 0.3, // Some bounce for projectile impacts
+            
+            // Performance optimization
+            maxBodies: 200, // Limit for performance monitoring
+            maxConstraints: 50
         };
         
         // Physics bodies registry
@@ -41,17 +62,32 @@ class PhysicsEngine {
             return false;
         }
         
-        // Create physics engine
+        // Create physics engine with optimized settings
         this.engine = Matter.Engine.create();
         this.world = this.engine.world;
         
-        // Configure engine settings
+        // Configure world settings
         this.engine.world.gravity = this.config.gravity;
         this.engine.enableSleeping = this.config.enableSleeping;
+        
+        // Configure solver iterations for performance/accuracy balance
         this.engine.constraintIterations = this.config.constraintIterations;
         this.engine.positionIterations = this.config.positionIterations;
         this.engine.velocityIterations = this.config.velocityIterations;
-        this.engine.timing.timeScale = 1;
+        
+        // Configure timing
+        this.engine.timing.timeScale = this.config.timeScale;
+        
+        // Configure broadphase collision detection
+        if (this.config.broadPhase === 'grid') {
+            this.engine.broadphase = Matter.Grid.create();
+        }
+        
+        // Set world bounds for better collision optimization
+        this.engine.world.bounds = {
+            min: { x: -100, y: -100 },
+            max: { x: this.canvas.width + 100, y: this.canvas.height + 100 }
+        };
         
         // Set up collision detection
         this.setupCollisionEvents();
@@ -60,7 +96,12 @@ class PhysicsEngine {
         this.createArenaBoundaries();
         
         console.log('✅ Physics engine initialized');
-        console.log(`📐 Arena size: ${this.canvas.width}x${this.canvas.height}`);
+        console.log(`📐 Arena: ${this.canvas.width}x${this.canvas.height}, Bounds: ${JSON.stringify(this.engine.world.bounds)}`);
+        console.log(`⚙️ Config: Gravity(${this.config.gravity.x},${this.config.gravity.y}), Iterations(${this.config.positionIterations}/${this.config.velocityIterations})`);
+        console.log(`🎯 Performance: Max bodies(${this.config.maxBodies}), Broadphase(${this.config.broadPhase || 'default'})`);
+        
+        // Validate world configuration
+        this.validateWorldConfig();
         
         return true;
     }
@@ -159,10 +200,10 @@ class PhysicsEngine {
      */
     createCircleBody(x, y, radius, options = {}) {
         const defaultOptions = {
-            density: 0.001,
-            frictionAir: 0.01,
-            restitution: 0.3,
-            friction: 0.1
+            density: this.config.defaultDensity,
+            frictionAir: this.config.defaultFrictionAir,
+            restitution: this.config.defaultRestitution,
+            friction: this.config.defaultFriction
         };
         
         const body = Matter.Bodies.circle(x, y, radius, { ...defaultOptions, ...options });
@@ -180,10 +221,10 @@ class PhysicsEngine {
      */
     createRectangleBody(x, y, width, height, options = {}) {
         const defaultOptions = {
-            density: 0.001,
-            frictionAir: 0.01,
-            restitution: 0.3,
-            friction: 0.1
+            density: this.config.defaultDensity,
+            frictionAir: this.config.defaultFrictionAir,
+            restitution: this.config.defaultRestitution,
+            friction: this.config.defaultFriction
         };
         
         const body = Matter.Bodies.rectangle(x, y, width, height, { ...defaultOptions, ...options });
@@ -197,9 +238,14 @@ class PhysicsEngine {
     }
     
     /**
-     * Add a body to the physics world
+     * Add a body to the physics world with performance monitoring
      */
     addBody(body, entity = null) {
+        // Check performance limits
+        if (this.world.bodies.length >= this.config.maxBodies) {
+            console.warn(`⚠️ Physics world has ${this.world.bodies.length} bodies (max: ${this.config.maxBodies})`);
+        }
+        
         Matter.World.add(this.world, body);
         
         // Link entity to body for collision handling
@@ -256,13 +302,65 @@ class PhysicsEngine {
     }
     
     /**
-     * Update physics simulation
+     * Update physics simulation with performance monitoring
      */
     update(deltaTime) {
         if (!this.engine) return;
         
         // Run physics simulation
         Matter.Engine.update(this.engine, deltaTime * 1000);
+        
+        // Periodic performance monitoring (every 5 seconds)
+        if (!this.lastPerfCheck) this.lastPerfCheck = 0;
+        this.lastPerfCheck += deltaTime;
+        
+        if (this.lastPerfCheck >= 5.0) {
+            this.performanceCheck();
+            this.lastPerfCheck = 0;
+        }
+    }
+    
+    /**
+     * Perform periodic performance check
+     */
+    performanceCheck() {
+        const bodyCount = this.world.bodies.length;
+        const utilizationPercent = (bodyCount / this.config.maxBodies) * 100;
+        
+        if (utilizationPercent > 80) {
+            console.warn(`⚠️ High physics load: ${bodyCount}/${this.config.maxBodies} bodies (${utilizationPercent.toFixed(1)}%)`);
+        }
+        
+        // Check for sleeping bodies if enabled
+        if (this.config.enableSleeping) {
+            const sleepingBodies = this.world.bodies.filter(body => body.isSleeping).length;
+            if (sleepingBodies > 0) {
+                console.log(`💤 Sleeping bodies: ${sleepingBodies}/${bodyCount}`);
+            }
+        }
+    }
+    
+    /**
+     * Adjust physics settings at runtime
+     */
+    adjustPhysicsSettings(newSettings) {
+        if (newSettings.timeScale !== undefined) {
+            this.engine.timing.timeScale = newSettings.timeScale;
+            this.config.timeScale = newSettings.timeScale;
+        }
+        
+        if (newSettings.positionIterations !== undefined) {
+            this.engine.positionIterations = newSettings.positionIterations;
+            this.config.positionIterations = newSettings.positionIterations;
+        }
+        
+        if (newSettings.velocityIterations !== undefined) {
+            this.engine.velocityIterations = newSettings.velocityIterations;
+            this.config.velocityIterations = newSettings.velocityIterations;
+        }
+        
+        console.log('🔧 Physics settings adjusted:', newSettings);
+        this.validateWorldConfig();
     }
     
     /**
@@ -309,15 +407,70 @@ class PhysicsEngine {
     }
     
     /**
-     * Get physics statistics
+     * Get comprehensive physics statistics
      */
     getStats() {
-        return {
+        const stats = {
+            // World composition
             bodies: this.world.bodies.length,
             constraints: this.world.constraints.length,
             composites: this.world.composites.length,
-            registeredBodies: this.bodies.size
+            registeredBodies: this.bodies.size,
+            
+            // Performance metrics
+            maxBodies: this.config.maxBodies,
+            bodyUtilization: ((this.world.bodies.length / this.config.maxBodies) * 100).toFixed(1) + '%',
+            
+            // Engine configuration
+            gravity: this.engine.world.gravity,
+            timeScale: this.engine.timing.timeScale,
+            iterations: {
+                constraint: this.engine.constraintIterations,
+                position: this.engine.positionIterations,
+                velocity: this.engine.velocityIterations
+            },
+            
+            // World bounds
+            bounds: this.engine.world.bounds
         };
+        
+        return stats;
+    }
+    
+    /**
+     * Validate physics world configuration
+     */
+    validateWorldConfig() {
+        const issues = [];
+        
+        // Check gravity configuration
+        const gravity = this.engine.world.gravity;
+        if (gravity.x !== 0 || gravity.y !== 0 || gravity.scale !== 0) {
+            issues.push('Warning: Gravity is not zero - may affect top-down dragon flight');
+        }
+        
+        // Check body count
+        if (this.world.bodies.length > this.config.maxBodies * 0.8) {
+            issues.push(`Warning: High body count (${this.world.bodies.length}/${this.config.maxBodies})`);
+        }
+        
+        // Check solver iterations
+        if (this.engine.positionIterations < 4) {
+            issues.push('Warning: Low position iterations may cause collision instability');
+        }
+        
+        // Check time scale
+        if (this.engine.timing.timeScale !== 1.0) {
+            issues.push(`Info: Time scale is ${this.engine.timing.timeScale} (not normal speed)`);
+        }
+        
+        if (issues.length > 0) {
+            console.group('🔧 Physics World Validation');
+            issues.forEach(issue => console.log(issue));
+            console.groupEnd();
+        }
+        
+        return issues.length === 0;
     }
     
     /**
