@@ -64,6 +64,11 @@ class SnakeDragonsGame {
         // Initialize state manager
         this.stateManager = new GameStateManager(this);
         
+        // Add state change listener for dragon creation
+        this.stateManager.addEventListener('statechange', (event) => {
+            this.onStateChange(event);
+        });
+        
         console.log('✅ Canvas initialized:', this.canvas.width + 'x' + this.canvas.height);
         console.log('✅ Physics engine ready');
         console.log('✅ Renderer ready');
@@ -74,6 +79,10 @@ class SnakeDragonsGame {
         if (loadingText) {
             loadingText.style.display = 'none';
         }
+        
+        // Game entities
+        this.dragons = [];
+        this.playerDragon = null;
         
         // Transition to menu state
         this.stateManager.transitionTo(this.stateManager.STATES.MENU, 'initialization_complete');
@@ -138,6 +147,9 @@ class SnakeDragonsGame {
      */
     stop() {
         this.isRunning = false;
+        
+        // Clean up dragons
+        this.cleanupDragons();
         
         // Clean up physics engine
         if (this.physicsEngine) {
@@ -310,13 +322,19 @@ class SnakeDragonsGame {
      * Update gameplay state
      */
     updateGameplay(deltaTime) {
-        // TODO: Implement gameplay logic
+        // Update dragons
+        this.updateDragons(deltaTime);
+        
+        // TODO: Implement other gameplay logic (projectiles, enemies, etc.)
     }
     
     /**
      * Update boss mode state
      */
     updateBossMode(deltaTime) {
+        // Update dragons (including boss)
+        this.updateDragons(deltaTime);
+        
         // TODO: Implement boss mode logic
     }
     
@@ -325,6 +343,113 @@ class SnakeDragonsGame {
      */
     updateGameOver(deltaTime) {
         // TODO: Implement game over logic
+    }
+    
+    /**
+     * Create test dragon for development
+     */
+    createTestDragon() {
+        // Create player dragon
+        this.playerDragon = new Dragon({
+            type: 'player',
+            x: 400,
+            y: 300,
+            maxHealth: 100,
+            color: '#4a90e2',
+            debug: true
+        });
+        
+        // Initialize dragon with game systems
+        this.playerDragon.init(this, this.physicsEngine, this.renderer);
+        this.dragons.push(this.playerDragon);
+        
+        // Set camera to follow player
+        if (this.renderer) {
+            this.renderer.setCameraTarget(this.playerDragon.position);
+        }
+        
+        console.log('🐉 Test dragon created');
+    }
+    
+    /**
+     * Update all dragons
+     */
+    updateDragons(deltaTime) {
+        for (const dragon of this.dragons) {
+            if (dragon.isAlive) {
+                dragon.update(deltaTime);
+            }
+        }
+        
+        // Clean up dead dragons
+        this.dragons = this.dragons.filter(dragon => dragon.isAlive);
+    }
+    
+    /**
+     * Render all dragons
+     */
+    renderDragons() {
+        for (const dragon of this.dragons) {
+            if (dragon.isAlive) {
+                dragon.render(this.renderer);
+            }
+        }
+    }
+    
+    /**
+     * Handle dragon death
+     */
+    onDragonDeath(dragon) {
+        console.log(`💀 Dragon died: ${dragon.id} (${dragon.type})`);
+        
+        if (dragon.isPlayer) {
+            // Player died - trigger game over
+            console.log('💀 Player dragon died - game over');
+            this.stateManager.gameOver();
+        } else {
+            // Enemy died - update score
+            const playingData = this.stateManager.getStateData();
+            this.stateManager.updateStateData({
+                kills: (playingData.kills || 0) + 1,
+                score: (playingData.score || 0) + 100
+            });
+        }
+    }
+    
+    /**
+     * Handle state changes from GameStateManager
+     */
+    onStateChange(event) {
+        const { fromState, toState, reason } = event;
+        
+        console.log(`🔄 Game handling state change: ${fromState} → ${toState} (${reason})`);
+        
+        // Handle transitions to playing state
+        if (toState === this.stateManager.STATES.PLAYING) {
+            // Create test dragon when starting gameplay
+            if (!this.playerDragon || !this.playerDragon.isAlive) {
+                this.createTestDragon();
+            }
+        }
+        
+        // Handle transitions away from playing state
+        if (fromState === this.stateManager.STATES.PLAYING && toState === this.stateManager.STATES.MENU) {
+            // Clean up dragons when returning to menu
+            this.cleanupDragons();
+        }
+    }
+    
+    /**
+     * Clean up all dragons
+     */
+    cleanupDragons() {
+        for (const dragon of this.dragons) {
+            dragon.destroy();
+        }
+        this.dragons = [];
+        this.playerDragon = null;
+        
+        console.log('🧹 Dragons cleaned up');
     }
     
     /**
@@ -345,30 +470,20 @@ class SnakeDragonsGame {
      * Render gameplay (in world space)
      */
     renderGameplay() {
-        // TODO: Implement gameplay rendering with entities
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
+        // Render dragons
+        this.renderDragons();
         
-        this.renderer.renderText('GAMEPLAY MODE', centerX - 80, centerY, 'white', '24px Arial');
-        
-        // Render some placeholder game objects for testing
-        this.renderer.renderCircle(centerX - 100, centerY - 100, 20, 'lime'); // Player dragon placeholder
-        this.renderer.renderCircle(centerX + 100, centerY + 100, 15, 'red');  // Enemy dragon placeholder
-        this.renderer.renderRectangle(centerX, centerY + 50, 60, 30, 'gray'); // Obstacle placeholder
+        // TODO: Render projectiles, obstacles, etc.
     }
     
     /**
      * Render boss mode (in world space)
      */
     renderBossMode() {
-        // TODO: Implement boss mode rendering
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
+        // Render dragons (including boss)
+        this.renderDragons();
         
-        this.renderer.renderText('BOSS BATTLE!', centerX - 80, centerY, 'red', '24px Arial');
-        
-        // Render boss placeholder
-        this.renderer.renderCircle(centerX, centerY - 80, 40, 'darkred'); // Boss dragon placeholder
+        // TODO: Render boss-specific effects, enhanced UI, etc.
     }
     
     /**

@@ -1,8 +1,8 @@
 ## Relevant Files
 
-- `index.html` - Main HTML file with 800x600 canvas, UI elements, Matter.js, PhysicsEngine, Renderer, and GameStateManager integration
-- `src/game.js` - Main game class with enhanced requestAnimationFrame loop, fixed timestep physics, GameStateManager integration, camera system, visibility handling, and comprehensive performance monitoring
-- `src/entities/Dragon.js` - Player and enemy dragon class with movement, rotation, and combat
+- `index.html` - Main HTML file with 800x600 canvas, UI elements, Matter.js, PhysicsEngine, Renderer, GameStateManager, and Dragon entity integration
+- `src/game.js` - Main game class with enhanced requestAnimationFrame loop, fixed timestep physics, GameStateManager integration, dragon management system, camera system, state change handling, and comprehensive performance monitoring
+- `src/entities/Dragon.js` - Comprehensive Dragon base class with position, rotation, health, physics integration, combat system, rendering, damage/healing, death handling, and debug features
 - `src/entities/Projectile.js` - Fireball and exploding projectile classes with physics
 - `src/entities/PowerUp.js` - Power-up and health item classes with spawn logic
 - `src/entities/Boss.js` - Boss dragon class with special abilities (shield, rapid fire)
@@ -50,17 +50,17 @@
   - [x] 1.6 Initialize git repository and create .gitignore
   - [x] 1.7 Create README.md with setup and development instructions
 
-- [ ] 2.0 Core Game Engine and Physics Integration  
+- [x] 2.0 Core Game Engine and Physics Integration  
   - [x] 2.1 Install and configure Matter.js physics engine
   - [x] 2.2 Create main game loop using requestAnimationFrame
   - [x] 2.3 Set up Matter.js physics world with proper gravity and settings
   - [x] 2.4 Create basic Canvas rendering context and viewport setup
   - [x] 2.5 Implement GameStateManager for different game states (menu, playing, boss, gameover)
-  - [ ] 2.6 Create PhysicsEngine wrapper class for Matter.js integration
-  - [ ] 2.7 Set up basic frame rate monitoring and performance tracking
+  - [x] 2.6 Create PhysicsEngine wrapper class for Matter.js integration
+  - [x] 2.7 Set up basic frame rate monitoring and performance tracking
 
 - [ ] 3.0 Dragon Entity System and Controls
-  - [ ] 3.1 Create Dragon base class with position, rotation, and health properties
+  - [x] 3.1 Create Dragon base class with position, rotation, and health properties
   - [ ] 3.2 Implement InputManager for home row keyboard controls (I/K/J/L movement, A/S rotation)
   - [ ] 3.3 Add dragon movement physics with acceleration and deceleration
   - [ ] 3.4 Implement 360-degree rotation system with smooth turning
