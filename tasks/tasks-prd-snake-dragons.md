@@ -1,13 +1,13 @@
 ## Relevant Files
 
-- `index.html` - Main HTML file with 800x600 canvas, UI elements, and Matter.js integration
-- `src/game.js` - Main game class with game loop, state management, and basic rendering
+- `index.html` - Main HTML file with 800x600 canvas, UI elements, Matter.js and PhysicsEngine integration
+- `src/game.js` - Main game class with game loop, state management, physics integration, and rendering
 - `src/entities/Dragon.js` - Player and enemy dragon class with movement, rotation, and combat
 - `src/entities/Projectile.js` - Fireball and exploding projectile classes with physics
 - `src/entities/PowerUp.js` - Power-up and health item classes with spawn logic
 - `src/entities/Boss.js` - Boss dragon class with special abilities (shield, rapid fire)
 - `src/systems/InputManager.js` - Keyboard input handling for home row controls
-- `src/systems/PhysicsEngine.js` - Physics calculations using Matter.js for collisions and movement
+- `src/systems/PhysicsEngine.js` - Complete Matter.js wrapper with arena boundaries, collision detection, and physics body management
 - `src/systems/CollisionManager.js` - Collision detection between dragons, projectiles, and obstacles
 - `src/systems/GameStateManager.js` - Game state management (menu, gameplay, boss fight, game over)
 - `src/systems/AssetLoader.js` - Loading and management of sprite images and animations
@@ -51,7 +51,7 @@
   - [x] 1.7 Create README.md with setup and development instructions
 
 - [ ] 2.0 Core Game Engine and Physics Integration  
-  - [ ] 2.1 Install and configure Matter.js physics engine
+  - [x] 2.1 Install and configure Matter.js physics engine
   - [ ] 2.2 Create main game loop using requestAnimationFrame
   - [ ] 2.3 Set up Matter.js physics world with proper gravity and settings
   - [ ] 2.4 Create basic Canvas rendering context and viewport setup

@@ -7,6 +7,7 @@ class SnakeDragonsGame {
     constructor() {
         this.canvas = null;
         this.ctx = null;
+        this.physicsEngine = null;
         this.isRunning = false;
         this.lastFrameTime = 0;
         this.deltaTime = 0;
@@ -39,14 +40,15 @@ class SnakeDragonsGame {
         this.canvas.width = 800;
         this.canvas.height = 600;
         
-        // Check if Matter.js is loaded
-        if (typeof Matter === 'undefined') {
-            console.error('❌ Matter.js physics engine not loaded');
+        // Initialize physics engine
+        this.physicsEngine = new PhysicsEngine(this.canvas);
+        if (!this.physicsEngine.engine) {
+            console.error('❌ Failed to initialize physics engine');
             return;
         }
         
         console.log('✅ Canvas initialized:', this.canvas.width + 'x' + this.canvas.height);
-        console.log('✅ Matter.js physics engine loaded');
+        console.log('✅ Physics engine ready');
         
         // Hide loading text
         const loadingText = document.getElementById('loadingText');
@@ -80,6 +82,13 @@ class SnakeDragonsGame {
      */
     stop() {
         this.isRunning = false;
+        
+        // Clean up physics engine
+        if (this.physicsEngine) {
+            this.physicsEngine.destroy();
+            this.physicsEngine = null;
+        }
+        
         console.log('⏹️ Game loop stopped');
     }
     
@@ -113,6 +122,11 @@ class SnakeDragonsGame {
      * Update game logic
      */
     update(deltaTime) {
+        // Update physics simulation (runs in all states except paused)
+        if (this.currentState !== 'paused' && this.physicsEngine) {
+            this.physicsEngine.update(deltaTime);
+        }
+        
         switch (this.currentState) {
             case 'menu':
                 this.updateMenu(deltaTime);
@@ -256,9 +270,22 @@ class SnakeDragonsGame {
         this.ctx.fillStyle = 'lime';
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`FPS: ${this.frameRate}`, 10, this.canvas.height - 40);
-        this.ctx.fillText(`State: ${this.currentState}`, 10, this.canvas.height - 25);
-        this.ctx.fillText(`Delta: ${this.deltaTime.toFixed(3)}s`, 10, this.canvas.height - 10);
+        
+        let debugY = this.canvas.height - 55;
+        this.ctx.fillText(`FPS: ${this.frameRate}`, 10, debugY);
+        
+        debugY += 15;
+        this.ctx.fillText(`State: ${this.currentState}`, 10, debugY);
+        
+        debugY += 15;
+        this.ctx.fillText(`Delta: ${this.deltaTime.toFixed(3)}s`, 10, debugY);
+        
+        // Physics debug info
+        if (this.physicsEngine) {
+            const stats = this.physicsEngine.getStats();
+            debugY += 15;
+            this.ctx.fillText(`Physics Bodies: ${stats.bodies}`, 10, debugY);
+        }
     }
 }
 
