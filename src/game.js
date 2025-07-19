@@ -8,6 +8,7 @@ class SnakeDragonsGame {
         this.canvas = null;
         this.ctx = null;
         this.physicsEngine = null;
+        this.renderer = null;
         this.isRunning = false;
         
         // Game loop timing
@@ -57,8 +58,14 @@ class SnakeDragonsGame {
             return;
         }
         
+        // Initialize renderer
+        this.renderer = new Renderer(this.canvas, {
+            showDebugInfo: true // Enable debug info for development
+        });
+        
         console.log('✅ Canvas initialized:', this.canvas.width + 'x' + this.canvas.height);
         console.log('✅ Physics engine ready');
+        console.log('✅ Renderer ready');
         
         // Hide loading text
         const loadingText = document.getElementById('loadingText');
@@ -129,6 +136,12 @@ class SnakeDragonsGame {
         if (this.physicsEngine) {
             this.physicsEngine.destroy();
             this.physicsEngine = null;
+        }
+        
+        // Clean up renderer
+        if (this.renderer) {
+            this.renderer.destroy();
+            this.renderer = null;
         }
         
         console.log('⏹️ Game loop stopped');
@@ -204,6 +217,11 @@ class SnakeDragonsGame {
             this.physicsEngine.update(fixedDeltaTime);
         }
         
+        // Update camera system (runs in all states except paused)
+        if (this.currentState !== 'paused' && this.renderer) {
+            this.renderer.updateCamera(fixedDeltaTime);
+        }
+        
         switch (this.currentState) {
             case 'menu':
                 this.updateMenu(fixedDeltaTime);
@@ -224,12 +242,13 @@ class SnakeDragonsGame {
     }
     
     /**
-     * Render the game
+     * Render the game using the Renderer system
      */
     render() {
-        // Clear the canvas
-        this.ctx.fillStyle = '#1e3a5f';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        if (!this.renderer) return;
+        
+        // Begin frame rendering
+        this.renderer.beginFrame();
         
         switch (this.currentState) {
             case 'menu':
@@ -249,7 +268,10 @@ class SnakeDragonsGame {
                 break;
         }
         
-        // Render debug info
+        // End frame rendering (includes debug info if enabled)
+        this.renderer.endFrame();
+        
+        // Render additional debug info
         this.renderDebugInfo();
     }
     
@@ -282,73 +304,80 @@ class SnakeDragonsGame {
     }
     
     /**
-     * Render menu
+     * Render menu (in world space)
      */
     renderMenu() {
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '48px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('SNAKE DRAGONS', this.canvas.width / 2, this.canvas.height / 2 - 50);
+        // Center text in arena
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
         
-        this.ctx.font = '24px Arial';
-        this.ctx.fillText('Press SPACE to Start', this.canvas.width / 2, this.canvas.height / 2 + 20);
-        
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText('Home Row Controls: I/K/J/L to move, A/S to rotate, F/D to shoot', 
-                         this.canvas.width / 2, this.canvas.height / 2 + 60);
+        this.renderer.renderText('SNAKE DRAGONS', centerX - 150, centerY - 50, 'white', '48px Arial');
+        this.renderer.renderText('Press SPACE to Start', centerX - 120, centerY + 20, 'white', '24px Arial');
+        this.renderer.renderText('Home Row Controls: I/K/J/L to move, A/S to rotate, F/D to shoot', 
+                                centerX - 280, centerY + 60, 'lightblue', '16px Arial');
     }
     
     /**
-     * Render gameplay
+     * Render gameplay (in world space)
      */
     renderGameplay() {
-        // TODO: Implement gameplay rendering
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = '24px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('GAMEPLAY MODE', this.canvas.width / 2, this.canvas.height / 2);
+        // TODO: Implement gameplay rendering with entities
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        this.renderer.renderText('GAMEPLAY MODE', centerX - 80, centerY, 'white', '24px Arial');
+        
+        // Render some placeholder game objects for testing
+        this.renderer.renderCircle(centerX - 100, centerY - 100, 20, 'lime'); // Player dragon placeholder
+        this.renderer.renderCircle(centerX + 100, centerY + 100, 15, 'red');  // Enemy dragon placeholder
+        this.renderer.renderRectangle(centerX, centerY + 50, 60, 30, 'gray'); // Obstacle placeholder
     }
     
     /**
-     * Render boss mode
+     * Render boss mode (in world space)
      */
     renderBossMode() {
         // TODO: Implement boss mode rendering
-        this.ctx.fillStyle = 'red';
-        this.ctx.font = '24px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('BOSS BATTLE!', this.canvas.width / 2, this.canvas.height / 2);
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        this.renderer.renderText('BOSS BATTLE!', centerX - 80, centerY, 'red', '24px Arial');
+        
+        // Render boss placeholder
+        this.renderer.renderCircle(centerX, centerY - 80, 40, 'darkred'); // Boss dragon placeholder
     }
     
     /**
-     * Render paused state
+     * Render paused state (in world space)
      */
     renderPaused() {
-        this.ctx.fillStyle = 'yellow';
-        this.ctx.font = '36px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        this.renderer.renderText('PAUSED', centerX - 60, centerY, 'yellow', '36px Arial');
+        this.renderer.renderText('Press ESC to Resume', centerX - 100, centerY + 40, 'white', '16px Arial');
     }
     
     /**
-     * Render game over
+     * Render game over (in world space)
      */
     renderGameOver() {
-        this.ctx.fillStyle = 'red';
-        this.ctx.font = '36px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        
+        this.renderer.renderText('GAME OVER', centerX - 80, centerY, 'red', '36px Arial');
+        this.renderer.renderText('Press SPACE to Restart', centerX - 120, centerY + 40, 'white', '16px Arial');
     }
     
     /**
-     * Render debug information
+     * Render debug information (in screen space)
      */
     renderDebugInfo() {
         this.ctx.fillStyle = 'lime';
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'left';
         
-        let debugY = this.canvas.height - 85;
+        let debugY = this.canvas.height - 115;
         
         // Frame rate with color coding
         const fpsColor = this.frameRate >= 55 ? 'lime' : this.frameRate >= 25 ? 'yellow' : 'red';
@@ -372,7 +401,14 @@ class SnakeDragonsGame {
         if (this.physicsEngine) {
             const stats = this.physicsEngine.getStats();
             debugY += 15;
-            this.ctx.fillText(`Physics Bodies: ${stats.bodies}`, 10, debugY);
+            this.ctx.fillText(`Physics Bodies: ${stats.bodies} (${stats.bodyUtilization})`, 10, debugY);
+        }
+        
+        // Renderer debug info
+        if (this.renderer) {
+            const renderStats = this.renderer.getStats();
+            debugY += 15;
+            this.ctx.fillText(`Rendered: ${renderStats.objectsRendered}, Culled: ${renderStats.objectsCulled}`, 10, debugY);
         }
     }
 }
