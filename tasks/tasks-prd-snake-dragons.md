@@ -1,7 +1,7 @@
 ## Relevant Files
 
-- `index.html` - Main HTML file with 800x600 canvas, UI elements, Matter.js, PhysicsEngine, and Renderer integration
-- `src/game.js` - Main game class with enhanced requestAnimationFrame loop, fixed timestep physics, state management, camera system integration, and comprehensive performance monitoring
+- `index.html` - Main HTML file with 800x600 canvas, UI elements, Matter.js, PhysicsEngine, Renderer, and GameStateManager integration
+- `src/game.js` - Main game class with enhanced requestAnimationFrame loop, fixed timestep physics, GameStateManager integration, camera system, visibility handling, and comprehensive performance monitoring
 - `src/entities/Dragon.js` - Player and enemy dragon class with movement, rotation, and combat
 - `src/entities/Projectile.js` - Fireball and exploding projectile classes with physics
 - `src/entities/PowerUp.js` - Power-up and health item classes with spawn logic
@@ -9,7 +9,7 @@
 - `src/systems/InputManager.js` - Keyboard input handling for home row controls
 - `src/systems/PhysicsEngine.js` - Advanced Matter.js wrapper with optimized world settings, performance monitoring, arena boundaries, collision detection, and runtime configuration
 - `src/systems/CollisionManager.js` - Collision detection between dragons, projectiles, and obstacles
-- `src/systems/GameStateManager.js` - Game state management (menu, gameplay, boss fight, game over)
+- `src/systems/GameStateManager.js` - Comprehensive state management with transition validation, lifecycle events, state-specific data, event system, and input handling
 - `src/systems/AssetLoader.js` - Loading and management of sprite images and animations
 - `src/systems/Renderer.js` - Advanced Canvas rendering system with viewport management, camera controls, coordinate transforms, frustum culling, and high-DPI support
 - `src/systems/AIManager.js` - AI behavior for enemy dragons and boss
@@ -55,7 +55,7 @@
   - [x] 2.2 Create main game loop using requestAnimationFrame
   - [x] 2.3 Set up Matter.js physics world with proper gravity and settings
   - [x] 2.4 Create basic Canvas rendering context and viewport setup
-  - [ ] 2.5 Implement GameStateManager for different game states (menu, playing, boss, gameover)
+  - [x] 2.5 Implement GameStateManager for different game states (menu, playing, boss, gameover)
   - [ ] 2.6 Create PhysicsEngine wrapper class for Matter.js integration
   - [ ] 2.7 Set up basic frame rate monitoring and performance tracking
 

@@ -9,6 +9,7 @@ class SnakeDragonsGame {
         this.ctx = null;
         this.physicsEngine = null;
         this.renderer = null;
+        this.stateManager = null;
         this.isRunning = false;
         
         // Game loop timing
@@ -24,9 +25,6 @@ class SnakeDragonsGame {
         this.maxDeltaTime = 1/15; // Cap delta time to prevent large jumps (15 FPS minimum)
         this.accumulatedTime = 0;
         this.fixedTimeStep = 1/60; // Fixed physics timestep for consistency
-        
-        // Game state
-        this.currentState = 'loading'; // loading, menu, playing, boss, paused, gameover
         
         // Initialize game
         this.init();
@@ -63,9 +61,13 @@ class SnakeDragonsGame {
             showDebugInfo: true // Enable debug info for development
         });
         
+        // Initialize state manager
+        this.stateManager = new GameStateManager(this);
+        
         console.log('✅ Canvas initialized:', this.canvas.width + 'x' + this.canvas.height);
         console.log('✅ Physics engine ready');
         console.log('✅ Renderer ready');
+        console.log('✅ State manager ready');
         
         // Hide loading text
         const loadingText = document.getElementById('loadingText');
@@ -73,8 +75,8 @@ class SnakeDragonsGame {
             loadingText.style.display = 'none';
         }
         
-        // Set initial game state
-        this.currentState = 'menu';
+        // Transition to menu state
+        this.stateManager.transitionTo(this.stateManager.STATES.MENU, 'initialization_complete');
         
         // Start the game loop
         this.start();
@@ -105,17 +107,22 @@ class SnakeDragonsGame {
      */
     setupVisibilityHandling() {
         document.addEventListener('visibilitychange', () => {
+            if (!this.stateManager) return;
+            
+            const currentState = this.stateManager.getCurrentState();
+            
             if (document.hidden) {
                 // Tab is hidden, pause the game if playing
-                if (this.currentState === 'playing' || this.currentState === 'boss') {
-                    this.lastVisibleState = this.currentState;
-                    this.currentState = 'paused';
+                if (currentState === this.stateManager.STATES.PLAYING || 
+                    currentState === this.stateManager.STATES.BOSS) {
+                    this.lastVisibleState = currentState;
+                    this.stateManager.pauseGame();
                     console.log('⏸️ Game auto-paused (tab hidden)');
                 }
             } else {
                 // Tab is visible again, resume if was auto-paused
-                if (this.currentState === 'paused' && this.lastVisibleState) {
-                    this.currentState = this.lastVisibleState;
+                if (currentState === this.stateManager.STATES.PAUSED && this.lastVisibleState) {
+                    this.stateManager.resumeGame();
                     this.lastVisibleState = null;
                     // Reset frame timing to prevent large delta
                     this.lastFrameTime = performance.now();
@@ -142,6 +149,12 @@ class SnakeDragonsGame {
         if (this.renderer) {
             this.renderer.destroy();
             this.renderer = null;
+        }
+        
+        // Clean up state manager
+        if (this.stateManager) {
+            this.stateManager.destroy();
+            this.stateManager = null;
         }
         
         console.log('⏹️ Game loop stopped');
@@ -212,30 +225,39 @@ class SnakeDragonsGame {
      * @param {number} fixedDeltaTime - Fixed timestep in seconds (1/60)
      */
     update(fixedDeltaTime) {
+        const currentState = this.stateManager.getCurrentState();
+        
         // Update physics simulation (runs in all states except paused)
-        if (this.currentState !== 'paused' && this.physicsEngine) {
+        if (currentState !== this.stateManager.STATES.PAUSED && this.physicsEngine) {
             this.physicsEngine.update(fixedDeltaTime);
         }
         
         // Update camera system (runs in all states except paused)
-        if (this.currentState !== 'paused' && this.renderer) {
+        if (currentState !== this.stateManager.STATES.PAUSED && this.renderer) {
             this.renderer.updateCamera(fixedDeltaTime);
         }
         
-        switch (this.currentState) {
-            case 'menu':
+        // Update state manager (handles state-specific logic)
+        if (this.stateManager) {
+            this.stateManager.update(fixedDeltaTime);
+        }
+        
+        // Legacy update methods for backward compatibility
+        // TODO: Move this logic into GameStateManager
+        switch (currentState) {
+            case this.stateManager.STATES.MENU:
                 this.updateMenu(fixedDeltaTime);
                 break;
-            case 'playing':
+            case this.stateManager.STATES.PLAYING:
                 this.updateGameplay(fixedDeltaTime);
                 break;
-            case 'boss':
+            case this.stateManager.STATES.BOSS:
                 this.updateBossMode(fixedDeltaTime);
                 break;
-            case 'paused':
+            case this.stateManager.STATES.PAUSED:
                 // No updates during pause
                 break;
-            case 'gameover':
+            case this.stateManager.STATES.GAMEOVER:
                 this.updateGameOver(fixedDeltaTime);
                 break;
         }
@@ -245,25 +267,27 @@ class SnakeDragonsGame {
      * Render the game using the Renderer system
      */
     render() {
-        if (!this.renderer) return;
+        if (!this.renderer || !this.stateManager) return;
+        
+        const currentState = this.stateManager.getCurrentState();
         
         // Begin frame rendering
         this.renderer.beginFrame();
         
-        switch (this.currentState) {
-            case 'menu':
+        switch (currentState) {
+            case this.stateManager.STATES.MENU:
                 this.renderMenu();
                 break;
-            case 'playing':
+            case this.stateManager.STATES.PLAYING:
                 this.renderGameplay();
                 break;
-            case 'boss':
+            case this.stateManager.STATES.BOSS:
                 this.renderBossMode();
                 break;
-            case 'paused':
+            case this.stateManager.STATES.PAUSED:
                 this.renderPaused();
                 break;
-            case 'gameover':
+            case this.stateManager.STATES.GAMEOVER:
                 this.renderGameOver();
                 break;
         }
@@ -377,7 +401,7 @@ class SnakeDragonsGame {
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'left';
         
-        let debugY = this.canvas.height - 115;
+        let debugY = this.canvas.height - 145;
         
         // Frame rate with color coding
         const fpsColor = this.frameRate >= 55 ? 'lime' : this.frameRate >= 25 ? 'yellow' : 'red';
@@ -386,9 +410,21 @@ class SnakeDragonsGame {
         
         this.ctx.fillStyle = 'lime';
         debugY += 15;
-        this.ctx.fillText(`State: ${this.currentState}`, 10, debugY);
         
-        debugY += 15;
+        // State manager debug info
+        if (this.stateManager) {
+            const currentState = this.stateManager.getCurrentState();
+            const timeInState = this.stateManager.getTimeInCurrentState();
+            this.ctx.fillText(`State: ${currentState} (${timeInState.toFixed(1)}s)`, 10, debugY);
+            
+            debugY += 15;
+            const stateData = this.stateManager.getStateData();
+            if (stateData.score !== undefined) {
+                this.ctx.fillText(`Score: ${stateData.score}, Kills: ${stateData.kills || 0}`, 10, debugY);
+                debugY += 15;
+            }
+        }
+        
         this.ctx.fillText(`Frame Δt: ${this.deltaTime.toFixed(3)}s`, 10, debugY);
         
         debugY += 15;
@@ -413,24 +449,31 @@ class SnakeDragonsGame {
     }
 }
 
-// Basic input handling for menu navigation
+// Input handling through GameStateManager
 document.addEventListener('keydown', (event) => {
-    if (window.game) {
-        switch (event.code) {
-            case 'Space':
-                if (window.game.currentState === 'menu') {
-                    window.game.currentState = 'playing';
-                    console.log('🎮 Starting gameplay');
-                }
-                break;
-            case 'Escape':
-                if (window.game.currentState === 'playing') {
-                    window.game.currentState = 'paused';
-                } else if (window.game.currentState === 'paused') {
-                    window.game.currentState = 'playing';
-                }
-                break;
-        }
+    if (window.game && window.game.stateManager) {
+        // Convert event to format expected by GameStateManager
+        const inputEvent = {
+            key: event.code,
+            type: 'keydown',
+            originalEvent: event
+        };
+        
+        window.game.stateManager.handleInput(inputEvent);
+    }
+});
+
+// Also handle keyup events for completeness
+document.addEventListener('keyup', (event) => {
+    if (window.game && window.game.stateManager) {
+        const inputEvent = {
+            key: event.code,
+            type: 'keyup',
+            originalEvent: event
+        };
+        
+        // State manager doesn't handle keyup yet, but structure is ready
+        // window.game.stateManager.handleInput(inputEvent);
     }
 });
 
