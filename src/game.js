@@ -9,10 +9,20 @@ class SnakeDragonsGame {
         this.ctx = null;
         this.physicsEngine = null;
         this.isRunning = false;
+        
+        // Game loop timing
         this.lastFrameTime = 0;
         this.deltaTime = 0;
         this.frameRate = 0;
         this.frameCount = 0;
+        this.frameRateBuffer = [];
+        this.frameRateBufferSize = 60; // Track last 60 frames for smooth FPS display
+        
+        // Performance monitoring
+        this.targetFPS = 60;
+        this.maxDeltaTime = 1/15; // Cap delta time to prevent large jumps (15 FPS minimum)
+        this.accumulatedTime = 0;
+        this.fixedTimeStep = 1/60; // Fixed physics timestep for consistency
         
         // Game state
         this.currentState = 'loading'; // loading, menu, playing, boss, paused, gameover
@@ -71,10 +81,42 @@ class SnakeDragonsGame {
         
         this.isRunning = true;
         this.lastFrameTime = performance.now();
-        console.log('🚀 Game loop started');
+        this.accumulatedTime = 0; // Reset accumulated time
+        
+        console.log('🚀 Game loop started with requestAnimationFrame');
+        console.log(`🎯 Target FPS: ${this.targetFPS}, Fixed timestep: ${this.fixedTimeStep}s`);
+        
+        // Set up visibility change handling
+        this.setupVisibilityHandling();
         
         // Start the main game loop
         this.gameLoop();
+    }
+    
+    /**
+     * Set up page visibility handling to pause game when tab is hidden
+     */
+    setupVisibilityHandling() {
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Tab is hidden, pause the game if playing
+                if (this.currentState === 'playing' || this.currentState === 'boss') {
+                    this.lastVisibleState = this.currentState;
+                    this.currentState = 'paused';
+                    console.log('⏸️ Game auto-paused (tab hidden)');
+                }
+            } else {
+                // Tab is visible again, resume if was auto-paused
+                if (this.currentState === 'paused' && this.lastVisibleState) {
+                    this.currentState = this.lastVisibleState;
+                    this.lastVisibleState = null;
+                    // Reset frame timing to prevent large delta
+                    this.lastFrameTime = performance.now();
+                    this.accumulatedTime = 0;
+                    console.log('▶️ Game auto-resumed (tab visible)');
+                }
+            }
+        });
     }
     
     /**
@@ -93,25 +135,37 @@ class SnakeDragonsGame {
     }
     
     /**
-     * Main game loop
+     * Main game loop using requestAnimationFrame
+     * Implements fixed timestep physics with variable rendering for smooth gameplay
      */
     gameLoop() {
         if (!this.isRunning) return;
         
         const currentTime = performance.now();
-        this.deltaTime = (currentTime - this.lastFrameTime) / 1000; // Convert to seconds
+        this.deltaTime = Math.min((currentTime - this.lastFrameTime) / 1000, this.maxDeltaTime);
         this.lastFrameTime = currentTime;
         
-        // Calculate frame rate
-        this.frameCount++;
-        if (this.frameCount % 60 === 0) {
-            this.frameRate = Math.round(1 / this.deltaTime);
+        // Update frame rate calculation with smoothing buffer
+        this.updateFrameRate();
+        
+        // Accumulate time for fixed timestep physics
+        this.accumulatedTime += this.deltaTime;
+        
+        // Fixed timestep updates for consistent physics
+        let updateSteps = 0;
+        while (this.accumulatedTime >= this.fixedTimeStep && updateSteps < 5) {
+            this.update(this.fixedTimeStep);
+            this.accumulatedTime -= this.fixedTimeStep;
+            updateSteps++;
         }
         
-        // Update game logic
-        this.update(this.deltaTime);
+        // If we had too many steps, reset accumulated time to prevent spiral of death
+        if (updateSteps >= 5) {
+            this.accumulatedTime = 0;
+            console.warn('⚠️ Game loop falling behind, resetting accumulated time');
+        }
         
-        // Render game
+        // Always render at display refresh rate for smooth visuals
         this.render();
         
         // Continue the loop
@@ -119,29 +173,52 @@ class SnakeDragonsGame {
     }
     
     /**
-     * Update game logic
+     * Update frame rate calculation with smoothing
      */
-    update(deltaTime) {
+    updateFrameRate() {
+        this.frameCount++;
+        
+        // Calculate instantaneous FPS
+        const instantFPS = 1 / this.deltaTime;
+        
+        // Add to rolling buffer
+        this.frameRateBuffer.push(instantFPS);
+        if (this.frameRateBuffer.length > this.frameRateBufferSize) {
+            this.frameRateBuffer.shift();
+        }
+        
+        // Calculate smoothed frame rate every 30 frames
+        if (this.frameCount % 30 === 0) {
+            const sum = this.frameRateBuffer.reduce((a, b) => a + b, 0);
+            this.frameRate = Math.round(sum / this.frameRateBuffer.length);
+        }
+    }
+    
+    /**
+     * Update game logic with fixed timestep
+     * @param {number} fixedDeltaTime - Fixed timestep in seconds (1/60)
+     */
+    update(fixedDeltaTime) {
         // Update physics simulation (runs in all states except paused)
         if (this.currentState !== 'paused' && this.physicsEngine) {
-            this.physicsEngine.update(deltaTime);
+            this.physicsEngine.update(fixedDeltaTime);
         }
         
         switch (this.currentState) {
             case 'menu':
-                this.updateMenu(deltaTime);
+                this.updateMenu(fixedDeltaTime);
                 break;
             case 'playing':
-                this.updateGameplay(deltaTime);
+                this.updateGameplay(fixedDeltaTime);
                 break;
             case 'boss':
-                this.updateBossMode(deltaTime);
+                this.updateBossMode(fixedDeltaTime);
                 break;
             case 'paused':
                 // No updates during pause
                 break;
             case 'gameover':
-                this.updateGameOver(deltaTime);
+                this.updateGameOver(fixedDeltaTime);
                 break;
         }
     }
@@ -271,14 +348,25 @@ class SnakeDragonsGame {
         this.ctx.font = '12px Arial';
         this.ctx.textAlign = 'left';
         
-        let debugY = this.canvas.height - 55;
-        this.ctx.fillText(`FPS: ${this.frameRate}`, 10, debugY);
+        let debugY = this.canvas.height - 85;
         
+        // Frame rate with color coding
+        const fpsColor = this.frameRate >= 55 ? 'lime' : this.frameRate >= 25 ? 'yellow' : 'red';
+        this.ctx.fillStyle = fpsColor;
+        this.ctx.fillText(`FPS: ${this.frameRate} (Target: ${this.targetFPS})`, 10, debugY);
+        
+        this.ctx.fillStyle = 'lime';
         debugY += 15;
         this.ctx.fillText(`State: ${this.currentState}`, 10, debugY);
         
         debugY += 15;
-        this.ctx.fillText(`Delta: ${this.deltaTime.toFixed(3)}s`, 10, debugY);
+        this.ctx.fillText(`Frame Δt: ${this.deltaTime.toFixed(3)}s`, 10, debugY);
+        
+        debugY += 15;
+        this.ctx.fillText(`Fixed Δt: ${this.fixedTimeStep.toFixed(3)}s`, 10, debugY);
+        
+        debugY += 15;
+        this.ctx.fillText(`Accumulated: ${this.accumulatedTime.toFixed(3)}s`, 10, debugY);
         
         // Physics debug info
         if (this.physicsEngine) {
