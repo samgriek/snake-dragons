@@ -45,11 +45,14 @@ if ! command -v curl &>/dev/null; then
 fi
 
 if [ -n "$PACKAGES_NEEDED" ]; then
-    echo "Installing required packages: $PACKAGES_NEEDED"
+    echo "The following packages need to be installed: $PACKAGES_NEEDED"
     echo "You may be prompted for your password."
     echo ""
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq $PACKAGES_NEEDED
+    echo "[1/2] Updating package lists..."
+    sudo apt-get update -y
+    echo ""
+    echo "[2/2] Installing $PACKAGES_NEEDED..."
+    sudo apt-get install -y $PACKAGES_NEEDED
 
     if [ $? -ne 0 ]; then
         echo ""
@@ -58,6 +61,8 @@ if [ -n "$PACKAGES_NEEDED" ]; then
         exit 1
     fi
     echo ""
+    echo "Packages installed successfully."
+    echo ""
 fi
 
 # ---- Check Node.js version is recent enough (need 14+) ----
@@ -65,10 +70,11 @@ fi
 NODE_MAJOR=$(node -v 2>/dev/null | sed 's/v\([0-9]*\).*/\1/')
 if [ -n "$NODE_MAJOR" ] && [ "$NODE_MAJOR" -lt 14 ]; then
     echo "Node.js version is too old ($(node -v)). Need v14 or higher."
-    echo "Installing a newer version..."
-    echo ""
+    echo "Setting up Node.js 20 repository..."
     curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt-get install -y -qq nodejs
+    echo "Installing Node.js 20..."
+    sudo apt-get install -y nodejs
+    echo "Node.js updated to $(node -v)."
     echo ""
 fi
 
@@ -78,15 +84,16 @@ if [ -d "$INSTALL_DIR/.git" ]; then
     echo "Game folder found at $INSTALL_DIR"
     echo "Checking for updates..."
     cd "$INSTALL_DIR"
-    git pull --ff-only 2>/dev/null || echo "Could not pull updates, using existing files."
+    git pull --ff-only || echo "Could not pull updates, using existing files."
 else
     if [ -d "$INSTALL_DIR" ]; then
         echo "Removing incomplete install at $INSTALL_DIR..."
         rm -rf "$INSTALL_DIR"
     fi
-    echo "Downloading the game..."
+    echo "Downloading the game to $INSTALL_DIR..."
     git clone "$REPO_URL" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
+    echo "Download complete."
 fi
 
 echo ""
@@ -94,8 +101,10 @@ echo ""
 # ---- Install Node dependencies ----
 
 if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
-    echo "Installing game dependencies..."
-    npm install --no-fund --no-audit 2>&1 | tail -1
+    echo "Installing game dependencies (this may take a minute)..."
+    npm install --no-fund --no-audit
+    echo ""
+    echo "Dependencies installed."
     echo ""
 fi
 
