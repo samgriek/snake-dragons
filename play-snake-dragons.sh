@@ -21,12 +21,19 @@ fi
 
 REPO_URL="https://github.com/samgriek/snake-dragons.git"
 INSTALL_DIR="$HOME/snake-dragons"
-PORT=3000
+PORT=20031
 
 echo "========================================="
 echo "  Snake Dragons - Setup & Launch"
 echo "========================================="
 echo ""
+
+# ---- Load nvm if available (not loaded by default in non-login shells) ----
+
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    echo "Loading nvm..."
+    source "$HOME/.nvm/nvm.sh"
+fi
 
 # ---- Install missing system packages ----
 
@@ -34,10 +41,6 @@ PACKAGES_NEEDED=""
 
 if ! command -v git &>/dev/null; then
     PACKAGES_NEEDED="git"
-fi
-
-if ! command -v node &>/dev/null || ! command -v npm &>/dev/null; then
-    PACKAGES_NEEDED="$PACKAGES_NEEDED nodejs npm"
 fi
 
 if ! command -v curl &>/dev/null; then
@@ -65,16 +68,29 @@ if [ -n "$PACKAGES_NEEDED" ]; then
     echo ""
 fi
 
-# ---- Check Node.js version is recent enough (need 14+) ----
+# ---- Ensure Node.js 18+ is available ----
 
 NODE_MAJOR=$(node -v 2>/dev/null | sed 's/v\([0-9]*\).*/\1/')
-if [ -n "$NODE_MAJOR" ] && [ "$NODE_MAJOR" -lt 14 ]; then
-    echo "Node.js version is too old ($(node -v)). Need v14 or higher."
-    echo "Setting up Node.js 20 repository..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    echo "Installing Node.js 20..."
-    sudo apt-get install -y nodejs
-    echo "Node.js updated to $(node -v)."
+
+if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 18 ]; then
+    if [ -z "$NODE_MAJOR" ]; then
+        echo "Node.js is not installed."
+    else
+        echo "Node.js version is too old ($(node -v)). Need v18 or higher."
+    fi
+
+    if command -v nvm &>/dev/null; then
+        echo "Installing Node.js 20 via nvm..."
+        nvm install 20
+        nvm use 20
+    else
+        echo "Setting up Node.js 20 repository..."
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        echo "Installing Node.js 20..."
+        sudo apt-get install -y nodejs
+    fi
+
+    echo "Node.js now at $(node -v)."
     echo ""
 fi
 
@@ -108,20 +124,34 @@ if [ ! -d "node_modules" ] || [ "package.json" -nt "node_modules" ]; then
     echo ""
 fi
 
-# ---- Find an open port ----
+# ---- Check port is free ----
 
 while command -v lsof &>/dev/null && lsof -i :"$PORT" &>/dev/null 2>&1; do
     PORT=$((PORT + 1))
 done
 
-# ---- Open browser after server starts ----
-
-(sleep 2 && xdg-open "http://localhost:$PORT" 2>/dev/null) &
+# ---- Start server in background, open browser, then bring server to foreground ----
 
 echo "Starting game on http://localhost:$PORT"
-echo "Your browser will open automatically."
-echo ""
-echo "To stop the game, close this window or press Ctrl+C."
 echo ""
 
-npx serve . --listen "$PORT"
+npx serve . --listen "$PORT" &
+SERVER_PID=$!
+
+# Wait for server to be ready
+echo "Waiting for server..."
+for i in $(seq 1 15); do
+    if curl -s -o /dev/null "http://localhost:$PORT" 2>/dev/null; then
+        break
+    fi
+    sleep 1
+done
+
+echo "Opening browser..."
+xdg-open "http://localhost:$PORT"
+echo ""
+echo "Game is running. To stop, close this window or press Ctrl+C."
+echo ""
+
+# Bring server to foreground so Ctrl+C stops it
+wait $SERVER_PID
