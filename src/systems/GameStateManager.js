@@ -24,7 +24,7 @@ class GameStateManager {
         
         // State transition validation rules
         this.transitions = {
-            [this.STATES.LOADING]: [this.STATES.MENU],
+            [this.STATES.LOADING]: [this.STATES.MENU, this.STATES.PLAYING],
             [this.STATES.MENU]: [this.STATES.PLAYING, this.STATES.LOADING],
             [this.STATES.PLAYING]: [this.STATES.BOSS, this.STATES.PAUSED, this.STATES.GAMEOVER, this.STATES.MENU],
             [this.STATES.BOSS]: [this.STATES.PLAYING, this.STATES.PAUSED, this.STATES.GAMEOVER, this.STATES.MENU],

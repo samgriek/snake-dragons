@@ -300,7 +300,14 @@ class PhysicsEngine {
     setAngle(body, angle) {
         Matter.Body.setAngle(body, angle);
     }
-    
+
+    /**
+     * Set body angular velocity
+     */
+    setAngularVelocity(body, angularVelocity) {
+        Matter.Body.setAngularVelocity(body, angularVelocity);
+    }
+
     /**
      * Update physics simulation with performance monitoring
      */

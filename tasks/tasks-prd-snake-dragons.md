@@ -3,25 +3,10 @@
 - `index.html` - Main HTML file with 800x600 canvas, UI elements, Matter.js, PhysicsEngine, Renderer, GameStateManager, and Dragon entity integration
 - `src/game.js` - Main game class with enhanced requestAnimationFrame loop, fixed timestep physics, GameStateManager integration, dragon management system, camera system, state change handling, and comprehensive performance monitoring
 - `src/entities/Dragon.js` - Comprehensive Dragon base class with position, rotation, health, physics integration, combat system, rendering, damage/healing, death handling, and debug features
-- `src/entities/Projectile.js` - Fireball and exploding projectile classes with physics
-- `src/entities/PowerUp.js` - Power-up and health item classes with spawn logic
-- `src/entities/Boss.js` - Boss dragon class with special abilities (shield, rapid fire)
-- `src/systems/InputManager.js` - Keyboard input handling for home row controls
+- `src/systems/InputManager.js` - Keyboard input handling for home row controls (I/K/J/L movement, A/S rotation, F/D shooting)
 - `src/systems/PhysicsEngine.js` - Advanced Matter.js wrapper with optimized world settings, performance monitoring, arena boundaries, collision detection, and runtime configuration
-- `src/systems/CollisionManager.js` - Collision detection between dragons, projectiles, and obstacles
 - `src/systems/GameStateManager.js` - Comprehensive state management with transition validation, lifecycle events, state-specific data, event system, and input handling
-- `src/systems/AssetLoader.js` - Loading and management of sprite images and animations
 - `src/systems/Renderer.js` - Advanced Canvas rendering system with viewport management, camera controls, coordinate transforms, frustum culling, and high-DPI support
-- `src/systems/AIManager.js` - AI behavior for enemy dragons and boss
-- `src/arena/Arena.js` - Arena boundaries and obstacle placement system
-- `src/audio/AudioManager.js` - Future audio system (placeholder for post-MVP)
-- `assets/sprites/dragon/` - Directory containing dragon sprite frames (4-6 frames for animation)
-- `assets/sprites/projectiles/` - Directory containing fireball sprite frames (2-3 frames)
-- `assets/sprites/powerups/` - Directory containing power-up and health kit sprites
-- `assets/sprites/boss/` - Directory containing boss dragon sprite frames
-- `assets/sprites/arena/` - Directory containing obstacle and arena environment sprites
-- `src/config/GameConfig.js` - Game configuration constants (controls, physics settings, spawn rates)
-- `src/utils/MathUtils.js` - Utility functions for physics calculations and transformations
 - `package.json` - NPM configuration with Matter.js physics engine, serve dev server, and npm scripts
 - `node_modules/` - Installed NPM dependencies (Matter.js physics engine and serve dev server)
 - `.gitignore` - Git ignore file excluding dependencies, build files, and system files
@@ -59,41 +44,41 @@
   - [x] 2.6 Create PhysicsEngine wrapper class for Matter.js integration
   - [x] 2.7 Set up basic frame rate monitoring and performance tracking
 
-- [ ] 3.0 Dragon Entity System and Controls
+- [x] 3.0 Dragon Entity System and Controls
   - [x] 3.1 Create Dragon base class with position, rotation, and health properties
-  - [ ] 3.2 Implement InputManager for home row keyboard controls (I/K/J/L movement, A/S rotation)
-  - [ ] 3.3 Add dragon movement physics with acceleration and deceleration
-  - [ ] 3.4 Implement 360-degree rotation system with smooth turning
-  - [ ] 3.5 Create dragon collision body in Matter.js physics world
-  - [ ] 3.6 Add basic dragon sprite rendering with rotation
-  - [ ] 3.7 Implement simultaneous key press handling for complex maneuvers
+  - [x] 3.2 Implement InputManager for home row keyboard controls (I/K/J/L movement, A/S rotation)
+  - [x] 3.3 Add dragon movement physics with acceleration and deceleration
+  - [x] 3.4 Implement 360-degree rotation system with smooth turning
+  - [x] 3.5 Create dragon collision body in Matter.js physics world
+  - [x] 3.6 Add basic dragon sprite rendering with rotation
+  - [x] 3.7 Implement simultaneous key press handling for complex maneuvers
 
-- [ ] 4.0 Combat System and Projectiles
-  - [ ] 4.1 Create Projectile class for regular fireballs and exploding projectiles
-  - [ ] 4.2 Implement shooting mechanics with F (regular) and D (exploding) keys
-  - [ ] 4.3 Add directional shooting based on dragon facing direction
-  - [ ] 4.4 Create projectile physics with velocity, trajectory, and lifetime
-  - [ ] 4.5 Implement collision detection between projectiles and dragons
-  - [ ] 4.6 Add damage system with different damage values for projectile types
-  - [ ] 4.7 Create projectile cleanup system for performance management
+- [x] 4.0 Combat System and Projectiles
+  - [x] 4.1 Create Projectile class for regular fireballs and exploding projectiles
+  - [x] 4.2 Implement shooting mechanics with F (regular) and D (exploding) keys
+  - [x] 4.3 Add directional shooting based on dragon facing direction
+  - [x] 4.4 Create projectile physics with velocity, trajectory, and lifetime
+  - [x] 4.5 Implement collision detection between projectiles and dragons
+  - [x] 4.6 Add damage system with different damage values for projectile types
+  - [x] 4.7 Create projectile cleanup system for performance management
 
-- [ ] 5.0 Game Progression and AI System
-  - [ ] 5.1 Create AIManager class for enemy dragon behavior
-  - [ ] 5.2 Implement basic enemy AI with movement and shooting patterns
-  - [ ] 5.3 Create enemy spawn system with wave progression
+- [x] 5.0 Game Progression and AI System
+  - [x] 5.1 Create AIManager class for enemy dragon behavior
+  - [x] 5.2 Implement basic enemy AI with movement and shooting patterns
+  - [x] 5.3 Create enemy spawn system with wave progression
   - [ ] 5.4 Add kill counter and game session timer (2-minute progression to boss)
-  - [ ] 5.5 Implement enemy difficulty scaling (health, speed, accuracy)
+  - [x] 5.5 Implement enemy difficulty scaling (health, speed, accuracy)
   - [ ] 5.6 Create enemy targeting and pathfinding around obstacles
-  - [ ] 5.7 Add enemy death handling and cleanup
+  - [x] 5.7 Add enemy death handling and cleanup
 
 - [ ] 6.0 Visual Assets and Rendering
   - [ ] 6.1 Create AssetLoader for managing sprite images and animations
   - [ ] 6.2 Set up sprite animation system with frame cycling (4-6 frames for dragons)
-  - [ ] 6.3 Implement health bar rendering for player and enemies
-  - [ ] 6.4 Create visual damage effects and hit feedback
+  - [x] 6.3 Implement health bar rendering for player and enemies
+  - [x] 6.4 Create visual damage effects and hit feedback
   - [ ] 6.5 Add particle effects for projectile impacts and explosions
-  - [ ] 6.6 Implement smooth camera system and viewport management
-  - [ ] 6.7 Create basic UI elements (health, score, timer)
+  - [x] 6.6 Implement smooth camera system and viewport management
+  - [x] 6.7 Create basic UI elements (health, score, timer)
 
 - [ ] 7.0 Arena Design and Collision System
   - [ ] 7.1 Create Arena class with 200x200 dragon unit boundaries
@@ -117,7 +102,7 @@
   - [ ] 9.1 Implement PowerUp system with weapon upgrades and health items
   - [ ] 9.2 Add power-up spawn logic (every 5 kills) and collection mechanics
   - [ ] 9.3 Optimize rendering performance to maintain 25fps minimum
-  - [ ] 9.4 Add game over and restart functionality
+  - [x] 9.4 Add game over and restart functionality
   - [ ] 9.5 Implement visual polish with smooth animations and effects
   - [ ] 9.6 Add final game balancing and difficulty tuning
   - [ ] 9.7 Perform comprehensive testing and bug fixes

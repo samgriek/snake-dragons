@@ -161,4 +161,4 @@ The core problem this game solves is providing an accessible, skill-based action
 
 **Document Version:** 1.0  
 **Last Updated:** Initial Creation  
-**Next Review:** After clarification of open questions 
+**Next Review:** After clarification of open questions

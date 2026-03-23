@@ -46,9 +46,17 @@ class SnakeDragonsGame {
         }
         
         // Set up canvas properties
-        this.canvas.width = 800;
-        this.canvas.height = 600;
-        
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+
+        // Game entities
+        this.dragons = [];
+        this.playerDragon = null;
+        this.projectiles = [];
+
+        // Input tracking
+        this.pressedKeys = {};
+
         // Initialize physics engine
         this.physicsEngine = new PhysicsEngine(this.canvas);
         if (!this.physicsEngine.engine) {
@@ -69,6 +77,18 @@ class SnakeDragonsGame {
             this.onStateChange(event);
         });
         
+        // Initialize AI manager
+        this.aiManager = new AIManager(this);
+        
+        // Set up basic input handling
+        this.setupInputHandling();
+        
+        // Set up window resize handling
+        this.setupResizeHandling();
+        
+        // Set up collision event handling
+        this.setupCollisionHandling();
+        
         console.log('✅ Canvas initialized:', this.canvas.width + 'x' + this.canvas.height);
         console.log('✅ Physics engine ready');
         console.log('✅ Renderer ready');
@@ -80,12 +100,8 @@ class SnakeDragonsGame {
             loadingText.style.display = 'none';
         }
         
-        // Game entities
-        this.dragons = [];
-        this.playerDragon = null;
-        
-        // Transition to menu state
-        this.stateManager.transitionTo(this.stateManager.STATES.MENU, 'initialization_complete');
+        // Transition to playing state for immediate testing
+        this.stateManager.transitionTo(this.stateManager.STATES.PLAYING, 'initialization_complete');
         
         // Start the game loop
         this.start();
@@ -140,6 +156,58 @@ class SnakeDragonsGame {
                 }
             }
         });
+    }
+
+    /**
+     * Set up window resize handling
+     */
+    setupResizeHandling() {
+        window.addEventListener('resize', () => {
+            // Update canvas size
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+            
+            // Update renderer if it exists
+            if (this.renderer) {
+                this.renderer.resize(this.canvas.width, this.canvas.height);
+            }
+            
+            console.log(`📐 Canvas resized to: ${this.canvas.width}x${this.canvas.height}`);
+        });
+    }
+    
+    /**
+     * Set up collision event handling
+     */
+    setupCollisionHandling() {
+        window.addEventListener('physicsCollisionStart', (event) => {
+            this.handleCollision(event.detail);
+        });
+    }
+    
+    /**
+     * Handle collision events from physics engine
+     */
+    handleCollision(collisionData) {
+        const { entityA, entityB } = collisionData;
+        
+        // Handle projectile-dragon collisions
+        if ((entityA && entityA.constructor === Projectile && entityB && entityB.constructor === Dragon) ||
+            (entityA && entityA.constructor === Dragon && entityB && entityB.constructor === Projectile)) {
+            
+            const projectile = entityA.constructor === Projectile ? entityA : entityB;
+            const dragon = entityA.constructor === Dragon ? entityA : entityB;
+            
+            if (projectile && dragon) {
+                projectile.onCollision(dragon);
+            }
+        }
+        
+        // Handle dragon-dragon collisions
+        if (entityA && entityB && entityA.constructor === Dragon && entityB.constructor === Dragon) {
+            console.log(`🐉 Dragon collision: ${entityA.id} vs ${entityB.id}`);
+            // TODO: Implement dragon collision effects
+        }
     }
     
     /**
@@ -312,6 +380,55 @@ class SnakeDragonsGame {
     }
     
     /**
+     * Set up basic input handling for game controls
+     */
+    setupInputHandling() {
+        document.addEventListener('keydown', (e) => {
+            const currentState = this.stateManager.getCurrentState();
+            
+            // Track key states for movement
+            this.pressedKeys[e.code] = true;
+            
+            // Handle menu controls
+            if (currentState === this.stateManager.STATES.MENU) {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    this.stateManager.transitionTo(this.stateManager.STATES.PLAYING, 'space_pressed');
+                }
+            }
+            
+            // Handle gameplay controls
+            if (currentState === this.stateManager.STATES.PLAYING) {
+                if (e.code === 'Escape') {
+                    e.preventDefault();
+                    this.stateManager.pauseGame();
+                }
+            }
+            
+            // Handle paused controls
+            if (currentState === this.stateManager.STATES.PAUSED) {
+                if (e.code === 'Escape') {
+                    e.preventDefault();
+                    this.stateManager.resumeGame();
+                }
+            }
+            
+            // Handle game over controls
+            if (currentState === this.stateManager.STATES.GAMEOVER) {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    this.stateManager.transitionTo(this.stateManager.STATES.MENU, 'restart');
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            // Track key states for movement
+            this.pressedKeys[e.code] = false;
+        });
+    }
+    
+    /**
      * Update menu state
      */
     updateMenu(deltaTime) {
@@ -325,7 +442,51 @@ class SnakeDragonsGame {
         // Update dragons
         this.updateDragons(deltaTime);
         
-        // TODO: Implement other gameplay logic (projectiles, enemies, etc.)
+        // Update projectiles
+        this.updateProjectiles(deltaTime);
+        
+        // Update AI
+        if (this.aiManager) {
+            this.aiManager.update(deltaTime);
+        }
+        
+        // Handle player dragon input
+        if (this.playerDragon && this.playerDragon.isAlive) {
+            this.handlePlayerInput(deltaTime);
+        }
+    }
+
+    /**
+     * Handle player input for dragon movement
+     */
+    handlePlayerInput(deltaTime) {
+        // Get current key states
+        const keys = {
+            moveForward: this.isKeyPressed('KeyI'),
+            moveBackward: this.isKeyPressed('KeyK'),
+            strafeLeft: this.isKeyPressed('KeyJ'),
+            strafeRight: this.isKeyPressed('KeyL'),
+            rotateLeft: this.isKeyPressed('KeyA'),
+            rotateRight: this.isKeyPressed('KeyS'),
+            fireRegular: this.isKeyPressed('KeyF'),
+            fireExploding: this.isKeyPressed('KeyD')
+        };
+        
+        // Process movement input
+        this.playerDragon.processMovementInput(keys, deltaTime);
+        
+        // Handle shooting
+        if (keys.fireRegular || keys.fireExploding) {
+            const projectileType = keys.fireExploding ? 'exploding' : 'normal';
+            this.playerDragon.shoot(projectileType);
+        }
+    }
+
+    /**
+     * Check if a key is currently pressed
+     */
+    isKeyPressed(keyCode) {
+        return this.pressedKeys && this.pressedKeys[keyCode] || false;
     }
     
     /**
@@ -369,6 +530,23 @@ class SnakeDragonsGame {
         }
         
         console.log('🐉 Test dragon created');
+        
+        // Spawn some test enemies
+        this.spawnTestEnemies();
+    }
+    
+    /**
+     * Spawn test enemies for development
+     */
+    spawnTestEnemies() {
+        if (!this.aiManager) return;
+        
+        // Spawn a few enemies with different patterns
+        this.aiManager.spawnEnemyWave(1, 2); // 2 aggressive enemies
+        this.aiManager.spawnEnemyWave(2, 1); // 1 defensive enemy
+        this.aiManager.spawnEnemyWave(3, 1); // 1 evasive enemy
+        
+        console.log('🎯 Test enemies spawned');
     }
     
     /**
@@ -386,12 +564,37 @@ class SnakeDragonsGame {
     }
     
     /**
+     * Update all projectiles
+     */
+    updateProjectiles(deltaTime) {
+        for (const projectile of this.projectiles) {
+            if (projectile.isActive) {
+                projectile.update(deltaTime);
+            }
+        }
+        
+        // Clean up dead projectiles
+        this.projectiles = this.projectiles.filter(projectile => projectile.isActive);
+    }
+    
+    /**
      * Render all dragons
      */
     renderDragons() {
         for (const dragon of this.dragons) {
             if (dragon.isAlive) {
                 dragon.render(this.renderer);
+            }
+        }
+    }
+    
+    /**
+     * Render all projectiles
+     */
+    renderProjectiles() {
+        for (const projectile of this.projectiles) {
+            if (projectile.isActive) {
+                projectile.render(this.renderer);
             }
         }
     }
@@ -449,7 +652,18 @@ class SnakeDragonsGame {
         this.dragons = [];
         this.playerDragon = null;
         
-        console.log('🧹 Dragons cleaned up');
+        // Clean up projectiles
+        for (const projectile of this.projectiles) {
+            projectile.destroy();
+        }
+        this.projectiles = [];
+        
+        // Clean up AI manager
+        if (this.aiManager) {
+            this.aiManager.destroy();
+        }
+        
+        console.log('🧹 Dragons, projectiles, and AI cleaned up');
     }
     
     /**
@@ -473,7 +687,10 @@ class SnakeDragonsGame {
         // Render dragons
         this.renderDragons();
         
-        // TODO: Render projectiles, obstacles, etc.
+        // Render projectiles
+        this.renderProjectiles();
+        
+        // TODO: Render obstacles, etc.
     }
     
     /**
@@ -514,14 +731,15 @@ class SnakeDragonsGame {
     renderDebugInfo() {
         this.ctx.fillStyle = 'lime';
         this.ctx.font = '12px Arial';
-        this.ctx.textAlign = 'left';
+        this.ctx.textAlign = 'right';
         
-        let debugY = this.canvas.height - 145;
+        let debugY = 20;
+        const debugX = this.canvas.width - 15;
         
         // Frame rate with color coding
         const fpsColor = this.frameRate >= 55 ? 'lime' : this.frameRate >= 25 ? 'yellow' : 'red';
         this.ctx.fillStyle = fpsColor;
-        this.ctx.fillText(`FPS: ${this.frameRate} (Target: ${this.targetFPS})`, 10, debugY);
+        this.ctx.fillText(`FPS: ${this.frameRate} (Target: ${this.targetFPS})`, debugX, debugY);
         
         this.ctx.fillStyle = 'lime';
         debugY += 15;
@@ -530,36 +748,36 @@ class SnakeDragonsGame {
         if (this.stateManager) {
             const currentState = this.stateManager.getCurrentState();
             const timeInState = this.stateManager.getTimeInCurrentState();
-            this.ctx.fillText(`State: ${currentState} (${timeInState.toFixed(1)}s)`, 10, debugY);
+            this.ctx.fillText(`State: ${currentState} (${timeInState.toFixed(1)}s)`, debugX, debugY);
             
             debugY += 15;
             const stateData = this.stateManager.getStateData();
             if (stateData.score !== undefined) {
-                this.ctx.fillText(`Score: ${stateData.score}, Kills: ${stateData.kills || 0}`, 10, debugY);
+                this.ctx.fillText(`Score: ${stateData.score}, Kills: ${stateData.kills || 0}`, debugX, debugY);
                 debugY += 15;
             }
         }
         
-        this.ctx.fillText(`Frame Δt: ${this.deltaTime.toFixed(3)}s`, 10, debugY);
+        this.ctx.fillText(`Frame Δt: ${this.deltaTime.toFixed(3)}s`, debugX, debugY);
         
         debugY += 15;
-        this.ctx.fillText(`Fixed Δt: ${this.fixedTimeStep.toFixed(3)}s`, 10, debugY);
+        this.ctx.fillText(`Fixed Δt: ${this.fixedTimeStep.toFixed(3)}s`, debugX, debugY);
         
         debugY += 15;
-        this.ctx.fillText(`Accumulated: ${this.accumulatedTime.toFixed(3)}s`, 10, debugY);
+        this.ctx.fillText(`Accumulated: ${this.accumulatedTime.toFixed(3)}s`, debugX, debugY);
         
         // Physics debug info
         if (this.physicsEngine) {
             const stats = this.physicsEngine.getStats();
             debugY += 15;
-            this.ctx.fillText(`Physics Bodies: ${stats.bodies} (${stats.bodyUtilization})`, 10, debugY);
+            this.ctx.fillText(`Physics Bodies: ${stats.bodies} (${stats.bodyUtilization})`, debugX, debugY);
         }
         
         // Renderer debug info
         if (this.renderer) {
             const renderStats = this.renderer.getStats();
             debugY += 15;
-            this.ctx.fillText(`Rendered: ${renderStats.objectsRendered}, Culled: ${renderStats.objectsCulled}`, 10, debugY);
+            this.ctx.fillText(`Rendered: ${renderStats.objectsRendered}, Culled: ${renderStats.objectsCulled}`, debugX, debugY);
         }
     }
 }
@@ -590,12 +808,6 @@ document.addEventListener('keyup', (event) => {
         // State manager doesn't handle keyup yet, but structure is ready
         // window.game.stateManager.handleInput(inputEvent);
     }
-});
-
-// Initialize the game when the page loads
-window.addEventListener('load', () => {
-    console.log('🌟 Page loaded, creating Snake Dragons game...');
-    window.game = new SnakeDragonsGame();
 });
 
 // Handle page unload

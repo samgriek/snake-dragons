@@ -35,9 +35,15 @@ class Dragon {
         // Dragon characteristics and stats
         this.size = options.size || 30; // Base radius for collision
         this.maxSpeed = options.maxSpeed || 200; // Pixels per second
-        this.acceleration = options.acceleration || 400;
-        this.turnSpeed = options.turnSpeed || 3.0; // Radians per second
-        this.friction = options.friction || 0.95; // Movement friction multiplier
+        this.acceleration = options.acceleration || 800; // Increased for more responsive movement
+        this.turnSpeed = options.turnSpeed || 4.0; // Radians per second
+        this.friction = options.friction || 8.0; // Deceleration multiplier (higher = faster stopping)
+        
+        // Enhanced rotation properties
+        this.maxAngularVelocity = options.maxAngularVelocity || 5.0; // Maximum rotation speed (radians/sec)
+        this.angularAcceleration = options.angularAcceleration || 12.0; // Angular acceleration (radians/sec²)
+        this.angularFriction = options.angularFriction || 8.0; // Angular deceleration multiplier
+        this.targetAngularVelocity = 0; // Target angular velocity for smooth interpolation
         
         // Combat properties
         this.damage = options.damage || 25;
@@ -112,7 +118,7 @@ class Dragon {
             isPlayer: this.isPlayer
         };
         
-        this.physicsBody = this.physicsEngine.createCircle(
+        this.physicsBody = this.physicsEngine.createCircleBody(
             this.position.x,
             this.position.y,
             this.size,
@@ -120,6 +126,8 @@ class Dragon {
         );
         
         if (this.physicsBody) {
+            // Add the body to the physics world
+            this.physicsEngine.addBody(this.physicsBody, this);
             console.log(`🔵 Physics body created for dragon ${this.id}: radius ${this.size}`);
         }
     }
@@ -233,10 +241,10 @@ class Dragon {
         const screenPos = renderer.worldToScreen(this.position.x, this.position.y);
         
         // Calculate size in screen space
-        const screenSize = this.size * renderer.camera.zoom;
+        const screenSize = this.size * renderer.config.viewport.zoom;
         
         // Don't render if too small or outside viewport
-        if (screenSize < 2 || !renderer.isInViewport(this.position.x, this.position.y, this.size)) {
+        if (screenSize < 2 || !renderer.isVisible(this.position.x, this.position.y, this.size, this.size)) {
             return;
         }
         
@@ -251,23 +259,21 @@ class Dragon {
         }
         
         // Draw filled circle
-        renderer.drawCircle(this.position.x, this.position.y, this.size, this.color, true);
+        renderer.renderCircle(this.position.x, this.position.y, this.size, this.color, true);
         
         // Draw outline
-        renderer.drawCircle(this.position.x, this.position.y, this.size, this.outlineColor, false, 2);
+        renderer.renderCircle(this.position.x, this.position.y, this.size, this.outlineColor, false);
         
         // Draw direction indicator (line showing facing direction)
         const dirLength = this.size * 0.8;
         const endX = this.position.x + Math.cos(this.rotation) * dirLength;
         const endY = this.position.y + Math.sin(this.rotation) * dirLength;
-        
+
         renderer.ctx.strokeStyle = this.outlineColor;
         renderer.ctx.lineWidth = 3;
         renderer.ctx.beginPath();
-        const startScreen = renderer.worldToScreen(this.position.x, this.position.y);
-        const endScreen = renderer.worldToScreen(endX, endY);
-        renderer.ctx.moveTo(startScreen.x, startScreen.y);
-        renderer.ctx.lineTo(endScreen.x, endScreen.y);
+        renderer.ctx.moveTo(this.position.x, this.position.y);
+        renderer.ctx.lineTo(endX, endY);
         renderer.ctx.stroke();
         
         renderer.ctx.restore();
@@ -277,30 +283,25 @@ class Dragon {
      * Render health bar above dragon
      */
     renderHealthBar(renderer) {
-        if (this.health >= this.maxHealth) return; // Don't show if full health
-        
-        const screenPos = renderer.worldToScreen(this.position.x, this.position.y);
-        const screenSize = this.size * renderer.camera.zoom;
-        
-        // Health bar dimensions
-        const barWidth = screenSize * 1.5;
+        // Health bar dimensions in world space
+        const barWidth = this.size * 1.5;
         const barHeight = 4;
-        const barOffsetY = screenSize + 10;
-        
-        const barX = screenPos.x - barWidth / 2;
-        const barY = screenPos.y - barOffsetY;
-        
+        const barOffsetY = this.size + 10;
+
+        const barX = this.position.x - barWidth / 2;
+        const barY = this.position.y - barOffsetY;
+
         // Health percentage
         const healthPercent = Math.max(0, this.health / this.maxHealth);
-        
+
         // Draw background
         renderer.ctx.fillStyle = this.healthBarBackgroundColor;
         renderer.ctx.fillRect(barX, barY, barWidth, barHeight);
-        
+
         // Draw health
         renderer.ctx.fillStyle = this.healthBarColor;
         renderer.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-        
+
         // Draw border
         renderer.ctx.strokeStyle = this.outlineColor;
         renderer.ctx.lineWidth = 1;
@@ -311,24 +312,22 @@ class Dragon {
      * Render debug information
      */
     renderDebugInfo(renderer) {
-        const screenPos = renderer.worldToScreen(this.position.x, this.position.y);
-        
         renderer.ctx.fillStyle = this.debugColor;
         renderer.ctx.font = '10px Arial';
         renderer.ctx.textAlign = 'center';
-        
-        let debugY = screenPos.y + this.size * renderer.camera.zoom + 25;
-        renderer.ctx.fillText(`ID: ${this.id}`, screenPos.x, debugY);
-        
+
+        let debugY = this.position.y + this.size + 25;
+        renderer.ctx.fillText(`ID: ${this.id}`, this.position.x, debugY);
+
         debugY += 12;
-        renderer.ctx.fillText(`HP: ${this.health}/${this.maxHealth}`, screenPos.x, debugY);
-        
+        renderer.ctx.fillText(`HP: ${this.health}/${this.maxHealth}`, this.position.x, debugY);
+
         debugY += 12;
         const speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
-        renderer.ctx.fillText(`Speed: ${speed.toFixed(1)}`, screenPos.x, debugY);
-        
+        renderer.ctx.fillText(`Speed: ${speed.toFixed(1)}`, this.position.x, debugY);
+
         debugY += 12;
-        renderer.ctx.fillText(`Angle: ${(this.rotation * 180 / Math.PI).toFixed(1)}°`, screenPos.x, debugY);
+        renderer.ctx.fillText(`Angle: ${(this.rotation * 180 / Math.PI).toFixed(1)}deg`, this.position.x, debugY);
     }
     
     /**
@@ -349,6 +348,53 @@ class Dragon {
         // Limit maximum speed
         this.limitSpeed();
     }
+
+    /**
+     * Move dragon forward (in the direction it's facing)
+     */
+    moveForward(deltaTime) {
+        this.move(this.rotation, deltaTime);
+    }
+
+    /**
+     * Move dragon backward (opposite to the direction it's facing)
+     */
+    moveBackward(deltaTime) {
+        this.move(this.rotation + Math.PI, deltaTime);
+    }
+
+    /**
+     * Strafe left (perpendicular to facing direction)
+     */
+    strafeLeft(deltaTime) {
+        this.move(this.rotation - Math.PI / 2, deltaTime);
+    }
+
+    /**
+     * Strafe right (perpendicular to facing direction)
+     */
+    strafeRight(deltaTime) {
+        this.move(this.rotation + Math.PI / 2, deltaTime);
+    }
+
+    /**
+     * Apply deceleration (friction) to slow down the dragon
+     */
+    applyDeceleration(deltaTime) {
+        if (!this.isAlive || !this.physicsBody) return;
+
+        // Get current velocity
+        const currentVelocity = this.physicsBody.velocity;
+        
+        // Apply friction to reduce velocity
+        const frictionForce = {
+            x: -currentVelocity.x * this.friction * deltaTime,
+            y: -currentVelocity.y * this.friction * deltaTime
+        };
+
+        // Apply the friction force
+        this.physicsEngine.applyForce(this.physicsBody, frictionForce);
+    }
     
     /**
      * Rotate dragon
@@ -358,6 +404,170 @@ class Dragon {
         
         // Set angular velocity directly
         this.physicsEngine.setAngularVelocity(this.physicsBody, angularVelocity);
+    }
+
+    /**
+     * Rotate dragon left (counter-clockwise) with smooth acceleration
+     */
+    rotateLeft(deltaTime) {
+        this.targetAngularVelocity = -this.maxAngularVelocity;
+        this.updateAngularVelocity(deltaTime);
+    }
+
+    /**
+     * Rotate dragon right (clockwise) with smooth acceleration
+     */
+    rotateRight(deltaTime) {
+        this.targetAngularVelocity = this.maxAngularVelocity;
+        this.updateAngularVelocity(deltaTime);
+    }
+
+    /**
+     * Stop rotation with smooth deceleration
+     */
+    stopRotation(deltaTime) {
+        if (!this.isAlive || !this.physicsBody) return;
+        
+        this.targetAngularVelocity = 0;
+        this.updateAngularVelocity(deltaTime);
+    }
+
+    /**
+     * Update angular velocity with smooth interpolation
+     */
+    updateAngularVelocity(deltaTime) {
+        if (!this.isAlive || !this.physicsBody) return;
+
+        const currentAngularVelocity = this.physicsBody.angularVelocity;
+        const velocityDifference = this.targetAngularVelocity - currentAngularVelocity;
+        
+        // Calculate acceleration needed
+        let acceleration = velocityDifference * this.angularAcceleration * deltaTime;
+        
+        // Apply acceleration with limits
+        let newAngularVelocity = currentAngularVelocity + acceleration;
+        
+        // Clamp to maximum angular velocity
+        newAngularVelocity = Math.max(-this.maxAngularVelocity, 
+                                     Math.min(this.maxAngularVelocity, newAngularVelocity));
+        
+        // Apply the new angular velocity
+        this.physicsEngine.setAngularVelocity(this.physicsBody, newAngularVelocity);
+    }
+
+    /**
+     * Rotate to face a specific angle with smooth turning
+     */
+    rotateTo(targetAngle, deltaTime) {
+        if (!this.isAlive || !this.physicsBody) return;
+
+        // Normalize angles to [-π, π] range
+        const currentAngle = this.normalizeAngle(this.rotation);
+        const normalizedTargetAngle = this.normalizeAngle(targetAngle);
+        
+        // Calculate shortest angular distance
+        let angleDifference = normalizedTargetAngle - currentAngle;
+        
+        // Ensure we take the shortest path (handle wrap-around)
+        if (angleDifference > Math.PI) {
+            angleDifference -= 2 * Math.PI;
+        } else if (angleDifference < -Math.PI) {
+            angleDifference += 2 * Math.PI;
+        }
+        
+        // Calculate desired angular velocity based on distance
+        const maxTurnSpeed = this.maxAngularVelocity;
+        let desiredAngularVelocity = 0;
+        
+        if (Math.abs(angleDifference) > 0.1) { // Only rotate if difference is significant
+            // Scale angular velocity based on distance (slower as we get closer)
+            const velocityScale = Math.min(1.0, Math.abs(angleDifference) / (Math.PI / 4));
+            desiredAngularVelocity = Math.sign(angleDifference) * maxTurnSpeed * velocityScale;
+        }
+        
+        this.targetAngularVelocity = desiredAngularVelocity;
+        this.updateAngularVelocity(deltaTime);
+        
+        // Return true if we're close to the target angle
+        return Math.abs(angleDifference) < 0.1;
+    }
+
+    /**
+     * Rotate to face a specific point with smooth turning
+     */
+    rotateToPoint(targetX, targetY, deltaTime) {
+        const targetAngle = this.getAngleTo(targetX, targetY);
+        return this.rotateTo(targetAngle, deltaTime);
+    }
+
+    /**
+     * Normalize angle to [-π, π] range
+     */
+    normalizeAngle(angle) {
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        return angle;
+    }
+
+    /**
+     * Get the angular distance between current rotation and target angle
+     */
+    getAngularDistance(targetAngle) {
+        const currentAngle = this.normalizeAngle(this.rotation);
+        const normalizedTargetAngle = this.normalizeAngle(targetAngle);
+        
+        let angleDifference = normalizedTargetAngle - currentAngle;
+        
+        // Ensure shortest path
+        if (angleDifference > Math.PI) {
+            angleDifference -= 2 * Math.PI;
+        } else if (angleDifference < -Math.PI) {
+            angleDifference += 2 * Math.PI;
+        }
+        
+        return angleDifference;
+    }
+    
+    /**
+     * Process movement input (to be called from input manager)
+     */
+    processMovementInput(input, deltaTime) {
+        if (!this.isAlive) return;
+
+        let hasMovementInput = false;
+
+        // Handle movement inputs
+        if (input.moveForward) {
+            this.moveForward(deltaTime);
+            hasMovementInput = true;
+        }
+        if (input.moveBackward) {
+            this.moveBackward(deltaTime);
+            hasMovementInput = true;
+        }
+        if (input.strafeLeft) {
+            this.strafeLeft(deltaTime);
+            hasMovementInput = true;
+        }
+        if (input.strafeRight) {
+            this.strafeRight(deltaTime);
+            hasMovementInput = true;
+        }
+
+        // Apply deceleration if no movement input
+        if (!hasMovementInput) {
+            this.applyDeceleration(deltaTime);
+        }
+
+        // Handle rotation inputs
+        if (input.rotateLeft) {
+            this.rotateLeft(deltaTime);
+        } else if (input.rotateRight) {
+            this.rotateRight(deltaTime);
+        } else {
+            // Stop rotation if no rotation input
+            this.stopRotation(deltaTime);
+        }
     }
     
     /**
@@ -467,24 +677,54 @@ class Dragon {
             y: Math.sin(this.rotation) * this.projectileSpeed
         };
         
-        console.log(`🔥 Dragon ${this.id} shooting ${projectileType} projectile`);
+        // Set damage based on projectile type
+        let projectileDamage = this.damage; // Default damage
+        if (projectileType === 'exploding') {
+            projectileDamage = this.damage * 2; // Exploding projectiles do double damage
+        } else if (projectileType === 'normal') {
+            projectileDamage = this.damage; // Normal projectiles use base damage
+        }
         
-        // TODO: Create actual projectile object
-        const projectileData = {
-            x: spawnX,
-            y: spawnY,
-            velocity: projectileVelocity,
-            type: projectileType,
-            damage: this.damage,
-            owner: this
-        };
+        console.log(`🔥 Dragon ${this.id} shooting ${projectileType} projectile with ${projectileDamage} damage`);
+        
+        // Create actual projectile object
+        let projectile;
+        if (projectileType === 'exploding') {
+            projectile = new ExplodingProjectile({
+                x: spawnX,
+                y: spawnY,
+                velocity: projectileVelocity,
+                damage: projectileDamage,
+                owner: this,
+                debug: this.showDebugInfo
+            });
+        } else {
+            projectile = new Projectile({
+                x: spawnX,
+                y: spawnY,
+                velocity: projectileVelocity,
+                damage: projectileDamage,
+                owner: this,
+                debug: this.showDebugInfo
+            });
+        }
+        
+        // Initialize projectile with game systems
+        if (this.game && this.physicsEngine && this.renderer) {
+            projectile.init(this.game, this.physicsEngine, this.renderer);
+            
+            // Add to game's projectile list
+            if (this.game.projectiles) {
+                this.game.projectiles.push(projectile);
+            }
+        }
         
         // Reset shooting state after short delay
         setTimeout(() => {
             this.isShooting = false;
         }, 100);
         
-        return projectileData;
+        return projectile;
     }
     
     /**
